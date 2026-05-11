@@ -8,6 +8,8 @@ As of now, testing of linking the Ikea smarthome Tradfri light bulbs is complete
 The next step is building a stable local app on Tkinter.
 Once the UI and app is set up, progres will start on configuring the Raspberry py to host. 
 
+ZigbeeSetup.py creates the controller and identifies devices/states on the specified port. 
+
 ## Systems Used
 
 Zigbee Donlge to communicate to the network
