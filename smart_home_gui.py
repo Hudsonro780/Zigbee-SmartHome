@@ -24,11 +24,18 @@ sensors_frame = Sensor Monitor Frame
 # ---- Imports ----
 
 import customtkinter
-import light_presets
+import device_presets
 import button_functions as bf
+import ZigbeeSetup as zs
+
+
+
+# ---- Zigbee Setup ----
 
 
 # ---- Creation Functions ----
+
+network = zs.Zigbee_Controller(port = 1883, broker = "localhost")
 
 # ---- App GUI Creation Functions ----
 def create_op_frame(app, dictionary, frame_id):
