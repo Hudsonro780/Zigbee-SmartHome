@@ -27,6 +27,7 @@ import customtkinter
 import device_presets
 import button_functions as bf
 import ZigbeeSetup as zs
+import tkinter as tk
 
 
 
@@ -36,6 +37,7 @@ import ZigbeeSetup as zs
 # ---- Creation Functions ----
 
 network = zs.Zigbee_Controller(port = 1883, broker = "localhost")
+
 
 # ---- App GUI Creation Functions ----
 def create_op_frame(app, dictionary, frame_id):
@@ -77,14 +79,58 @@ class App(customtkinter.CTk):
 
         self.title(title)
         self.geometry(size)
-        self.grid_columnconfigure((0,1,2,3), weight = 1)
+        self.grid_columnconfigure((0,1,2,3,4,5), weight = 1)
         self.grid_rowconfigure(0, weight = 0)
-        self.grid_rowconfigure(1, weight=1)
+        #self.grid_rowconfigure(1, weight=1)
 
-        # Setting Main Menu Frame
-        self.menu_frame = customtkinter.CTkFrame(self)
-        self.menu_frame.grid(row = 0, column = 0, columnspan = 4, sticky = "nsew", padx = 20, pady = 20)
-        self.menu_frame.grid_columnconfigure((0,1,2,3), weight = 1) # weight cells
+# ---- Main Menu Frame - Top of Page ---
+
+        self.top_frame = customtkinter.CTkFrame(self)
+        self.top_frame.grid(row = 0, column = 0, columnspan = 4, sticky = "nsew", padx = 20, pady = 20)
+        self.top_frame.grid_columnconfigure((0,1,2,3,4,5), weight = 1) # weight cells
+
+        # top right frames for network.
+        self.network_connect_frame = customtkinter.CTkFrame(self.top_frame)
+        self.network_connect_frame.grid(row=0, column = 0, columnspan = 2, padx = 20, pady = 20, sticky = "nsew")
+        
+        self.network_disconnect_frame = customtkinter.CTkFrame(self.top_frame)
+        self.network_disconnect_frame.grid(row=0, column = 0, columnspan = 2, padx = 20, pady = 20, sticky = "nsew")
+
+        # Menu strip
+        self.menu_frame = customtkinter.CTkFrame(self.top_frame)
+        self.menu_frame.grid(row=0, column = 2, columnspan = 4, padx = 20, pady = 20, sticky = "nsew")
+        self.menu_frame.grid_columnconfigure((0,1,2,3), weight = 1)
+
+        # Connect to Network Button
+        self.network_connect_button = customtkinter.CTkButton(
+            self.network_connect_frame, text="Connect", 
+            command=lambda: bf.connect_button(self, self.network_disconnect_frame, network) # Connects the zigbee network + raises disconnect button
+            )
+        self.network_connect_button.grid(row=0,column=0,padx = 20, pady = 20)
+        # connected text
+        self.connected_label = customtkinter.CTkLabel(
+            self.network_connect_frame, text = "Disconnected", 
+            font=customtkinter.CTkFont(size = 25, weight = "bold"), 
+            fg_color="transparent"
+            )
+        self.connected_label.grid(row = 0, column = 1, padx = 10, pady = 20, sticky = "ew")
+
+        # disconnect from network button
+        self.network_disconnect_button = customtkinter.CTkButton(
+            self.network_disconnect_frame, 
+            text = "Disconnect",
+            command = lambda: bf.disconnect_button(self, self.network_connect_frame, network)
+            )
+        self.network_disconnect_button.grid(row=0,column=0,padx = 20, pady = 20)
+
+
+        # disconnected text
+        self.disconnected_label = customtkinter.CTkLabel(
+            self.network_disconnect_frame, text = "Connected", 
+            font=customtkinter.CTkFont(size = 25, weight = "bold"), 
+            fg_color="transparent"
+            )
+        self.disconnected_label.grid(row = 0, column = 1, padx = 10, pady = 20, sticky = "ew")
 
         # Text Label
         self.menu_text = customtkinter.CTkLabel(
@@ -106,7 +152,6 @@ class App(customtkinter.CTk):
         
         self.dashboard_button.grid(row = 0, column = 1, padx = 10, pady = 20, sticky = "ew")
 
-        # CHANGE COMMANDS FOR BUTTONS WHEN MADE
         # Light Page Button
         self.light_menu_button = customtkinter.CTkButton(
             self.menu_frame, 
@@ -128,9 +173,9 @@ class App(customtkinter.CTk):
         self.sensor_menu_button.grid(row = 0, column = 3, padx = 10, pady = 20, sticky = "ew")
 
 
-        # ---- Data/App/Action Frames  ----
+# ---- Data/App/Action Frames  ----
 
-        # ---- >> Dashboard Frame << ----
+# ---- >> Dashboard Frame << ----
         # old method
         #self.dash_frame = customtkinter.CTkFrame(self)
         #self.dash_frame.grid(row = 2, column = 0, columnspan = 4, sticky = "nsew", padx = 20, pady = 20)
@@ -139,7 +184,7 @@ class App(customtkinter.CTk):
         dash_frame.grid_columnconfigure((0,1,2,3), weight = 1, uniform="column")
 
 
-        # ---- >> >> Dashboard - Connected Devices << << ----
+# ---- >> >> Dashboard - Connected Devices << << ----
         self.dash_deviceList = customtkinter.CTkFrame(dash_frame)
         self.dash_deviceList.grid(row = 0, column = 0, padx = 20, pady = 20, columnspan = 2, sticky = "ew")
         
@@ -150,7 +195,9 @@ class App(customtkinter.CTk):
         )
         self.device_list_label.grid(row = 0, column = 0, padx = 20, pady = 20,columnspan =2, sticky = "") # blank centers the text
 
-        # ---- >> >> Dashboard - Sensor Data << << ----
+
+
+# ---- >> >> Dashboard - Sensor Data << << ----
         self.dash_sensorData = customtkinter.CTkFrame(dash_frame)
         self.dash_sensorData.grid(row = 0, column = 2, padx = 20, pady = 20, columnspan = 2, sticky = "ew")
 
@@ -184,11 +231,65 @@ class App(customtkinter.CTk):
 
         # at end of init, raise dashboard frame as main hub
         self.operation_frames["Dashboard"].tkraise()
+        self.network_connect_frame.tkraise()
 
+    def list_devices(self,network):
+        """
+        to be called when pressing the connect button
 
+        integrated into the button_functions.py
 
+        Method designed to accomplish two tasks
+        1 - clearing widgets from the device list on the dashbaord
+        2 - creating new widgets for each device in the device list
+        """
+        for widget in self.dash_deviceList.winfo_children():
+            if widget != self.device_list_label:
+                widget.destroy()
+        
+        # retreiving friendly device names - pulling from master df
+        devices = network.getdevices_names()
+
+        for i,name in enumerate(devices):
+            device_block = customtkinter.CTkFrame(self.dash_deviceList)
+            device_block.grid(row = i+1, column = 0, columnspan = 2, padx=10,pady = 10, sticky = "nsew")
+
+            label = customtkinter.CTkLabel(device_block, text = name, anchor = "w")
+            label.grid(row=0, column=0, padx=10, pady=10, sticky = "nsew")
+
+            #pulling device details and current status
+            device_status = network.get_state(name)
+            if device_status:
+                device_status_text = device_status.get("state", "Unknown")
+            else:
+                device_status_text = "Unknown" #fallback
+
+            status_block = customtkinter.CTkLabel(device_block, text = device_status_text)
+            status_block.grid(row = 0, column = 1, padx = 10, pady = 10, sticky = "e")
+
+            device_block.grid_columnconfigure(0, weight=1)
+
+def on_closing():
+    """
+    Auto closing the Zigbee network and halts app when closing window
+    Added redundancy if never connected
+    """
+    try:
+        network.disconnect()
+    except Exception:
+        pass
     
+    try:
+        zs.process.terminate()
+        zs.process.wait(timeout=3)
+    except Exception:
+        pass
+
+    app.destroy()
+
 
 
 app = App("Smart Home Control", "1000x800")
+# forcing auto cleanup
+app.protocol("WM_DELETE_WINDOW", on_closing)
 app.mainloop()

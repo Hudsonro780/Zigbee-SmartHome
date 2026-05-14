@@ -104,20 +104,20 @@ class Zigbee_Controller:
         self.client.disconnect()
 
 
+# ---- testing ----
 
-
-controller = Zigbee_Controller(port = 1883, broker = "localhost")
-controller.connect()
+#controller = Zigbee_Controller(port = 1883, broker = "localhost")
+#controller.connect()
 
 # list for your GUI
-for name in controller.getdevices_names():
-    print(f"  {name}")
+#for name in controller.getdevices_names():
+#   print(f"  {name}")
 
 # Program Killing
-time.sleep(10)
-input("Newline to kill process: ")
-controller.disconnect()
-process.terminate()
-process.wait()
+#time.sleep(10)
+#input("Newline to kill process: ")
+#controller.disconnect()
+#process.terminate()
+#process.wait()
 
 
