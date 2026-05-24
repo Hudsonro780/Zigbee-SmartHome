@@ -44,10 +44,17 @@ def connect_button(app, disconnect_frame, network):
 
         time.sleep(5)
         app.after(0, lambda: app.list_devices(network))
+        app.after(0, lambda: app.populate_light_list(network))
         print(f"Device count: {len(network.devices)}")
 
     threading.Thread(target = connect_delay, daemon= True).start()
 
+
+def _apply_preset(app, device_name, color_temp, network):
+    """
+    sending color temp command to device
+    """
+    network.send_command(device_name, {"color_temp": color_temp})
 
 def disconnect_button(app, connect_frame, network):
     """

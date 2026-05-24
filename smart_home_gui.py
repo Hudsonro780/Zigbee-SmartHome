@@ -211,15 +211,41 @@ class App(customtkinter.CTk):
 
         # ---- >> Light Control Frame << ----
         light_frame = create_op_frame(self, self.operation_frames, "Lights")
-        light_frame.grid_columnconfigure((0,1,2,3), weight = 1)
+        light_frame.grid_columnconfigure(0, weight = 1)  # device list column
+        light_frame.grid_columnconfigure(1, weight = 2)  # controls column
+        light_frame.grid_rowconfigure(1, weight = 1)
+
+        #light_frame.grid_columnconfigure((0,1,2,3), weight = 1)
+        
         light_label = customtkinter.CTkLabel(light_frame, text = "Light Control", font=customtkinter.CTkFont(size = 30, weight = "bold"))
-        light_label.grid(row = 3, column = 2, padx = 20, pady = 20, columnspan = 2, sticky = "w")
+        light_label.grid(row=0, column=0, columnspan=2, padx=20, pady=(20, 10), sticky="w")
 
+        # ---- >> >> Light control device list << << ----
+        self.light_device_frame = customtkinter.CTkFrame(light_frame)
+        self.light_device_frame.grid(row = 1, column = 0, padx =(20,10), pady = 10, sticky = "nsew")
+        self.light_device_frame.grid_columnconfigure(0, weight = 1)
 
+        self.light_list_title = customtkinter.CTkLabel(self.light_device_frame, text = "Lights", font=customtkinter.CTkFont(size=20, weight = "bold"))
+        self.light_list_title.grid(row=0, column = 0, padx = 10, pady = 10)
+
+        #tracking selected light to edit ----
+        self.selected_light = None
+        self.light_buttons = {}
+
+        # ---- >> >> light controls panel << << ----
+        # on the right side of the page, selected light will be chosen and updated based on these
+
+        self.light_controls_frame = customtkinter.CTkFrame(light_frame)
+        self.light_controls_frame.grid(row=1, column = 1, padx = (10,20), pady = 10, sticky = "nsew")
+        self.light_controls_frame.grid_columnconfigure(0, weight =1 )
+
+        self.light_controls_title = customtkinter.CTkLabel(self.light_controls_frame, text = "Settings", font=customtkinter.CTkFont(size=20, weight = "bold"))
+        self.light_controls_title.grid(row=0, column = 0, padx = 10, pady = 10)
 
 
 
         # ---- >> Sensor Frame << ----
+        # WIP - No sensors to populate or test
         sensor_frame = create_op_frame(self, self.operation_frames, "Sensors")
         sensor_frame.grid_columnconfigure((0,1,2,3), weight = 1)
         sensor_label = customtkinter.CTkLabel(sensor_frame, text = "Sensor Monitor", font=customtkinter.CTkFont(size = 30, weight = "bold"))
@@ -259,6 +285,7 @@ class App(customtkinter.CTk):
 
             #pulling device details and current status
             device_status = network.get_state(name)
+            print(device_status)
             if device_status:
                 device_status_text = device_status.get("state", "Unknown")
             else:
@@ -268,6 +295,153 @@ class App(customtkinter.CTk):
             status_block.grid(row = 0, column = 1, padx = 10, pady = 10, sticky = "e")
 
             device_block.grid_columnconfigure(0, weight=1)
+
+
+
+
+    def populate_light_list(self, network):
+        """
+        Called after connecting to network (alongside list_devices).
+        Populates the light page device list with only light-type devices.
+        """
+        # clear previous entries (keep the header label)
+        for widget in self.light_device_frame.winfo_children():
+            if widget != self.light_list_title:
+                widget.destroy()
+
+        self.light_buttons = {}
+        self.selected_light = None
+        lights = network.get_lights()
+
+        for i, name in enumerate(lights):
+            state = network.get_state(name)
+            state_text = state.get("state", "Unknown") if state else "Unknown"
+
+            btn = customtkinter.CTkButton(
+                self.light_device_frame,
+                text=f"{name}  —  {state_text}",
+                font=customtkinter.CTkFont(size=14),
+                anchor="w",
+                fg_color="transparent",
+                text_color=("gray10", "gray90"),
+                hover_color=("gray75", "gray30"),
+                command=lambda n=name: self.select_light(n, network)
+            )
+            btn.grid(row=i + 1, column=0, padx=5, pady=2, sticky="ew")
+            self.light_buttons[name] = btn
+
+        # clear controls since device list just refreshed
+        self.clear_light_controls()
+
+    def select_light(self, device_name, network):
+        """Highlight the selected device and build its controls."""
+        # reset all button colors
+        for name, btn in self.light_buttons.items():
+            btn.configure(fg_color="transparent")
+
+        # highlight selected
+        self.light_buttons[device_name].configure(fg_color=("gray70", "gray35"))
+        self.selected_light = device_name
+
+        self.build_light_controls(device_name, network)
+
+    def clear_light_controls(self):
+        """Reset the controls panel to its empty state."""
+        for widget in self.light_controls_frame.winfo_children():
+            widget.destroy()
+
+        self.controls_label = customtkinter.CTkLabel(
+            self.light_controls_frame, text="Select a light to control",
+            font=customtkinter.CTkFont(size=20, weight="bold")
+        )
+        self.controls_label.grid(row=0, column=0, padx=20, pady=20)
+
+    def build_light_controls(self, device_name, network):
+        """Build controls dynamically based on what features the light supports."""
+        for widget in self.light_controls_frame.winfo_children():
+            widget.destroy()
+
+        features = network.get_light_features(device_name) #tracking availible features for light selected
+        state = network.get_state(device_name) or {} # load current state
+        row = 0
+
+        # Device header
+        name_label = customtkinter.CTkLabel(
+            self.light_controls_frame, text=device_name,
+            font=customtkinter.CTkFont(size=22, weight="bold")
+        )
+        name_label.grid(row=row, column=0, padx=20, pady=(20, 10))
+
+        # row control for feature controls. 
+        # have to dunamically update in the foor loop
+        row += 1 
+
+        # power control
+        if "state" in features:
+            current_state = state.get("state", "OFF") #default off
+            self.state_var = customtkinter.StringVar(value = current_state) #set start state for switch
+
+            # setting switch 
+            state_switch = customtkinter.CTkSwitch(
+                self.light_controls_frame,
+                text = "ON / OFF",
+                font=customtkinter.CTkFont(size=16),
+                variable = self.state_var, #val
+                onvalue = "ON", 
+                offvalue = "OFF",
+                command=lambda: network.send_command(device_name, {"state": self.state_var.get()})
+            )
+            state_switch.grid(row=row, column=0, padx=20, pady=15)
+            row += 1
+
+        # brightness control - making slider
+        if "brightness" in features:
+            current_brightness = state.get("brightness", 128)
+
+            bright_label = customtkinter.CTkLabel(self.light_controls_frame, text="Brightness",font=customtkinter.CTkFont(size=16))
+            bright_label.grid(row=row, column=0, padx=20, pady=(15, 0))
+            row += 1
+
+            self.brightness_slider = customtkinter.CTkSlider(
+                self.light_controls_frame,
+                from_= 0, 
+                to = 254,
+                number_of_steps= 254,
+                command = lambda val: network.send_command(device_name, {"brightness": int(val)})
+            )
+            self.brightness_slider.set(current_brightness)
+            self.brightness_slider.grid(row=row, column=0, padx=20, pady=(5, 15), sticky="ew")
+            row += 1
+
+        # color warmth presets (cool-warm type shii)
+        if "color_temp" in features:
+            preset_label = customtkinter.CTkLabel(
+                self.light_controls_frame, 
+                text="Presets",
+                font=customtkinter.CTkFont(size=16)
+            )
+            preset_label.grid(row=row, column=0, padx=20, pady=(15, 5))
+            row += 1
+
+            preset_frame = customtkinter.CTkFrame(self.light_controls_frame, fg_color="transparent")
+            preset_frame.grid(row=row, column=0, padx=20, pady=(0, 20))
+
+            presets = {"Warm": 370, "Neutral": 250, "Cool": 160}
+            for col, (label, temp_val) in enumerate(presets.items()):
+                customtkinter.CTkButton(
+                    preset_frame, 
+                    text = label, 
+                    width = 80,
+                    command = lambda t=temp_val: bf._apply_preset(self, device_name, t, network) # added button commands to bf
+                ).grid(row=0, column=col, padx=5, pady=5)
+
+
+
+
+
+
+
+
 
 def on_closing():
     """

@@ -66,7 +66,9 @@ class Zigbee_Controller:
             self.received = True
 
             for device in self.devices:
-                client.subscribe(f"{self.start_topic}/{device['friendly_name']}")
+                f_name = device['friendly_name']
+                client.subscribe(f"{self.start_topic}/{f_name}")
+                client.publish(f"{self.start_topic}/{f_name}/get", json.dumps({"state":""}))
             return # escape, objectives reached for message on devices.
 
         device_name = msg.topic.removeprefix(f"{self.start_topic}/")
@@ -83,6 +85,7 @@ class Zigbee_Controller:
         self.client.connect(self.broker, self.port)
         self.client.loop_start()
         self.getdevices()
+        time.sleep(1)
 
     def getdevices(self, timer = 5):
         self.received = False
@@ -94,6 +97,29 @@ class Zigbee_Controller:
     def getdevices_names(self):
         return [d["friendly_name"] for d in self.devices]
     
+
+
+    def get_lights(self):
+        """generate a return list of devices that are of type Light in exposes"""
+        lights = []
+        for device in self.devices:
+            definition = device.get("definition") or {}
+            for expose in definition.get("exposes", []):
+                if expose.get("type") == "light":
+                    lights.append(device["friendly_name"])
+                    break
+        return lights
+
+    def get_light_features(self, device_name):
+        """Return the list of light features for a device in the lights list"""
+        for device in self.devices:
+            if device["friendly_name"] == device_name:
+                definition = device.get("definition") or {}
+                for expose in definition.get("exposes", []):
+                    if expose.get("type") == "light":
+                        return [f["property"] for f in expose.get("features", [])]
+        return []
+
     def send_command(self, device_name, payload):
         self.client.publish(f"{self.start_topic}/{device_name}/set", json.dumps(payload))
         
@@ -102,6 +128,9 @@ class Zigbee_Controller:
     def disconnect(self):
         self.client.loop_stop()
         self.client.disconnect()
+
+
+
 
 
 # ---- testing ----
