@@ -1,17 +1,39 @@
-# Project Summary
+# Zigbee Smart Home Control
+ 
+A desktop GUI for controlling Zigbee smart home devices through Zigbee2MQTT. Built with Python and CustomTkinter.
+ 
+## What It Does
+ 
+- Connects to a local Zigbee2MQTT instance over MQTT
+- Lists all connected Zigbee devices and their current status
+- Controls smart lights: power on/off, brightness, and color temperature presets (warm, neutral, cool)
+- Sensor monitoring page (work in progress)
+## Requirements
 
-To program a local hosted webapp that runs functions to distribute commands throughout Zigbee Home Devices. 
+- [Zigbee2MQTT](https://www.zigbee2mqtt.io/) 
+- pnpm (used to start the Zigbee2MQTT service)
+- An MQTT broker running on localhost (port 1883)
+### Python Dependencies
+ 
+- customtkinter
+- paho-mqtt
 
-## Progress
-
-As of now, testing of linking the Ikea smarthome Tradfri light bulbs is complete. 
-The next step is building a stable local app on Tkinter.
-Once the UI and app is set up, progres will start on configuring the Raspberry py to host. 
-
-ZigbeeSetup.py creates the controller and identifies devices/states on the specified port. 
-
-## Systems Used
-
-Zigbee Donlge to communicate to the network
-Zigbee2mgtt
-Mosquito broker
+ 
+## Usage
+ 
+Make sure Zigbee2MQTT and your MQTT broker are set up, then run:
+ 
+```
+python smart_home_gui.py
+```
+ 
+Click **Connect** to join the network. The dashboard will populate with your devices. Use the **Lights** page to select a light and adjust its settings.
+ 
+## Notes
+ 
+- The app currently expects Zigbee2MQTT installed at `C:\zigbee2mqtt` and launches it via pnpm on startup.
+- Sensor support is planned but not yet implemented.
+- The app cleans up the MQTT connection and Zigbee2MQTT process on window close.
+## Author
+ 
+Robert Hudson
