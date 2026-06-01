@@ -17,10 +17,11 @@ A desktop GUI for controlling Zigbee smart home devices through Zigbee2MQTT. Bui
 
 ## Hardware
  
-| Device | Description |
-|--------|-------------|
-| ![Sonoff Zigbee Dongle](images/dongle.jpg) | **Sonoff Zigbee 3.0 USB Dongle** — acts as the Zigbee "coordinator" |
-| ![IKEA TRÅDFRI LED Bulb](images/bulb.jpg) | **IKEA TRÅDFRI LED** |
+ ![Sonoff Zigbee Dongle](images/dongle.jpg) 
+ **Sonoff Zigbee 3.0 USB Dongle** 
+ 
+ ![IKEA TRÅDFRI LED Bulb](images/bulb.jpg)  
+ **IKEA TRÅDFRI LED** 
 
 ### Python Dependencies
  
